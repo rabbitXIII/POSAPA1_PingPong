@@ -6,7 +6,7 @@ public class PingPongManager {
 
 	private Thread[] threads = new Thread[2];
 
-	private static CountDownLatch totalHits = new CountDownLatch(MAX_HITS_IN_GAME);
+	private static CountDownLatch totalHitsLeft = new CountDownLatch(MAX_HITS_IN_GAME);
 
 	public static void main(String[] args) {
 
@@ -17,19 +17,19 @@ public class PingPongManager {
 
 	}
 
-	public PingPongManager() {
+	private PingPongManager() {
 		threads[0] = new Thread(new PingPongPlayer("Ping!"));
 		threads[1] = new Thread(new PingPongPlayer("Pong!"));
 	}
 
-	public void startGame() {
+	private void startGame() {
 		System.out.println("Ready… Set… Go!\n");
 		for (Thread thread : threads)
 			thread.start();
 
 	}
 
-	public void waitAndFinishGame(){
+	private void waitAndFinishGame(){
 		try {
 			for (Thread thread : threads) {
 				thread.join();
@@ -43,28 +43,39 @@ public class PingPongManager {
 		System.out.println("\nDone!");
 	}
 
-	public class PingPongPlayer implements Runnable {
+	private class PingPongPlayer implements Runnable {
 
-		private String sound;
+		private String hitSound;
 
 		public PingPongPlayer(String sound) {
-			this.sound = sound;
+			this.hitSound = sound;
 		}
 
 		private boolean moreHitsInGame() {
-			return totalHits.getCount() > 0;
+			return totalHitsLeft.getCount() > 0;
 		}
 		
 		@Override
 		public void run() {
-			while(moreHitsInGame()){
+			while( moreHitsInGame() ){
+				
 				hitAndPrint();
 			}
 		}
 
 		private synchronized void hitAndPrint() {
-			totalHits.countDown();
-			System.out.println(sound);
+			totalHitsLeft.countDown();
+			System.out.println(hitSound);
+		}
+		
+		public String getHitSound() {
+			return hitSound;
+		}
+		
+		@Override
+		public String toString(){
+			return "PingPongPlayer - Hit sound: " + hitSound;
+			
 		}
 	}
 
