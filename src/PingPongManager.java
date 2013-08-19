@@ -1,20 +1,17 @@
-import java.util.concurrent.CountDownLatch;
 
 public class PingPongManager {
 
 	private static final int MAX_HITS_IN_GAME = 10;
-
 	private Thread[] threads = new Thread[2];
+	private static int totalHitsLeft = MAX_HITS_IN_GAME;
+	
+	private static Object nextTurn = new Object();
 
-	private static CountDownLatch totalHitsLeft = new CountDownLatch(MAX_HITS_IN_GAME);
-
+	
 	public static void main(String[] args) {
-
 		PingPongManager manager = new PingPongManager();
-		
 		manager.startGame();
 		manager.waitAndFinishGame();
-
 	}
 
 	private PingPongManager() {
@@ -26,20 +23,16 @@ public class PingPongManager {
 		System.out.println("Ready… Set… Go!\n");
 		for (Thread thread : threads)
 			thread.start();
-
 	}
 
 	private void waitAndFinishGame(){
 		try {
-			for (Thread thread : threads) {
-				thread.join();
-
-			}
+			for (Thread thread : threads)
+					thread.join();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 		System.out.println("\nDone!");
 	}
 
@@ -52,22 +45,31 @@ public class PingPongManager {
 		}
 
 		private boolean moreHitsInGame() {
-			return totalHitsLeft.getCount() > 0;
+			return totalHitsLeft > 0;
 		}
 		
 		@Override
 		public void run() {
 			while( moreHitsInGame() ){
-				
-				hitAndPrint();
+				synchronized(nextTurn) {
+					hitAndPrint();
+					try {
+						if( moreHitsInGame() )
+							nextTurn.wait();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
 			}
 		}
 
-		private synchronized void hitAndPrint() {
-			totalHitsLeft.countDown();
+		private void hitAndPrint() {
+			totalHitsLeft--;
 			System.out.println(hitSound);
+			nextTurn.notify();
 		}
 		
+		@SuppressWarnings("unused")
 		public String getHitSound() {
 			return hitSound;
 		}
